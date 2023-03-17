@@ -3,8 +3,9 @@
 
 _pkgname=git
 pkgname=${_pkgname}-for-windows
-pkgver=2.40.0.windows.1
+pkgver=2.40.0
 pkgrel=1
+pkgver_win=${pkgver}.windows.${pkgrel}
 pkgdesc="The fast distributed version control system"
 arch=('i686' 'x86_64')
 url="https://git-scm.com/"
@@ -49,7 +50,7 @@ optdepends=(#'tk: gitk and git gui'
 replaces=('git-core')
 provides=('git-core')
 #options=('debug' '!strip')
-source=("${pkgname}-${pkgver}.tar.gz"::https://github.com/git-for-windows/git/archive/v${pkgver}.tar.gz
+source=("${pkgname}-${pkgver_win}.tar.gz"::https://github.com/git-for-windows/git/archive/v${pkgver_win}.tar.gz
         1.7.9-cygwin.patch
         git-1.8.4-msys2.patch
         git-2.8.2-Cygwin-Allow-DOS-paths.patch
@@ -74,7 +75,7 @@ apply_patch_with_msg() {
 }
 
 prepare() {
-  cd "${srcdir}/${_pkgname}-${pkgver}"
+  cd "${srcdir}/${_pkgname}-${pkgver_win}"
 
   rm -f compat/win32/git.manifest compat/win32/resource.rc
   apply_patch_with_msg \
@@ -94,7 +95,7 @@ prepare() {
 
 build() {
   export PYTHON_PATH='/usr/bin/python'
-  cd "${srcdir}/${_pkgname}-${pkgver}"
+  cd "${srcdir}/${_pkgname}-${pkgver_win}"
 
   local CYGWIN_CHOST="${CHOST/-msys/-cygwin}"
   ./configure \
@@ -115,7 +116,7 @@ build() {
 
 check() {
   export PYTHON_PATH='/usr/bin/python'
-  cd "${srcdir}/${_pkgname}-${pkgver}"
+  cd "${srcdir}/${_pkgname}-${pkgver_win}"
   local jobs
   jobs=$(expr "$MAKEFLAGS" : '.*\(-j[0-9]*\).*')
   mkdir -p /tmp/git-test
@@ -132,7 +133,7 @@ check() {
 
 package() {
   export PYTHON_PATH='/usr/bin/python'
-  cd "${srcdir}/${_pkgname}-${pkgver}"
+  cd "${srcdir}/${_pkgname}-${pkgver_win}"
   make INSTALLDIRS=vendor DESTDIR="$pkgdir" install
   make INSTALLDIRS=vendor DESTDIR="${pkgdir}" install-man
   #make INSTALLDIRS=vendor DESTDIR="${pkgdir}" install-info
