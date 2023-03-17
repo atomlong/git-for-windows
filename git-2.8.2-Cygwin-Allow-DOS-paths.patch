@@ -1,0 +1,140 @@
+ builtin/clone.c |  2 +-
+ cache.h         |  1 +
+ path.c          | 37 +++++++++++++++++++++++++++++++++++++
+ pathspec.c      |  8 ++++++++
+ strbuf.c        |  8 ++++++++
+ 5 files changed, 55 insertions(+), 1 deletion(-)
+
+diff --git a/builtin/clone.c b/builtin/clone.c
+index 65b5b7db6d..7c22473c34 100644
+--- a/builtin/clone.c
++++ b/builtin/clone.c
+@@ -962,7 +962,7 @@ int cmd_clone(int argc, const char **argv, const char *prefix)
+ 		die(_("depth %s is not a positive number"), option_depth);
+ 
+ 	if (argc == 2)
+-		dir = xstrdup(argv[1]);
++		dir = maybe_xstrdup_cyg_conv_path(argv[1], 1);
+ 	else
+ 		dir = git_url_basename(repo_name, is_bundle, option_bare);
+ 	strip_dir_trailing_slashes(dir);
+diff --git a/cache.h b/cache.h
+index 2c73a13be0..b24d30eb8b 100644
+--- a/cache.h
++++ b/cache.h
+@@ -1293,6 +1293,7 @@ int normalize_path_copy_len(char *dst, const char *src, int *prefix_len);
+ int normalize_path_copy(char *dst, const char *src);
+ int longest_ancestor_length(const char *path, struct string_list *prefixes);
+ char *strip_path_suffix(const char *path, const char *suffix);
++char *maybe_xstrdup_cyg_conv_path(const char *path, int always_dupe);
+ int is_mount_point_via_stat(struct strbuf *path);
+ int daemon_avoid_alias(const char *path);
+ 
+diff --git a/path.c b/path.c
+index 57297b7f58..b3800bcb2b 100644
+--- a/path.c
++++ b/path.c
+@@ -14,6 +14,10 @@
+ #include "lockfile.h"
+ #include "exec-cmd.h"
+ 
++#if defined(__CYGWIN__)
++#include <sys/cygwin.h>
++#endif
++
+ static int get_st_mode_bits(const char *path, int *mode)
+ {
+ 	struct stat st;
+@@ -1312,6 +1316,39 @@ char *strip_path_suffix(const char *path, const char *suffix)
+ 	return offset == -1 ? NULL : xstrndup(path, offset);
+ }
+ 
++/* We're deliberately not changing the normal has_dos_drive_prefix
++ * here, since doing that would likely have unintended side-effects
++ * This version is only for maybe_xstrdup_cyg_conv_path which is
++ * called in very specific cases.
++ */
++#if defined(__CYGWIN__)
++#define cyg_conv_has_dos_drive_prefix(path) \
++	(isalpha(*(path)) && (path)[1] == ':' ? 2 : 0)
++#endif
++
++/*
++ * Avoids duplicating `path` if not needed unless `always_dupe` is non-zero.
+++ */
++char *maybe_xstrdup_cyg_conv_path(const char *path, int always_dupe)
++{
++#if defined(__CYGWIN__)
++	int dos_prefix = cyg_conv_has_dos_drive_prefix(path) ? 1 : 0;
++	int backslash = strchr(path, '\\') ? 1 : 0;
++	if (dos_prefix || backslash)
++	{
++		cygwin_conv_path_t form = dos_prefix ? CCP_ABSOLUTE : CCP_RELATIVE;
++		form |= CCP_WIN_A_TO_POSIX;
++		ssize_t cyg_len = cygwin_conv_path(form, path, NULL, 0);
++		char *cyg_path = (char *)alloca(cyg_len + 1);
++		if (cyg_path == NULL)
++		    die("Couldn't alloca space for cyg_path");
++		cygwin_conv_path(form, path, cyg_path, cyg_len);
++		return xstrndup(cyg_path, cyg_len);
++	}
++#endif
++	return always_dupe ? xstrdup(path) : (char*)path;
++}
++
+ int is_mount_point_via_stat(struct strbuf *path)
+ {
+ 	size_t len = path->len;
+diff --git a/pathspec.c b/pathspec.c
+index ab70fcbe61..4518d996dd 100644
+--- a/pathspec.c
++++ b/pathspec.c
+@@ -418,6 +418,10 @@ static void init_pathspec_item(struct pathspec_item *item, unsigned flags,
+ 			       const char *prefix, int prefixlen,
+ 			       const char *elt)
+ {
++#if defined(__CYGWIN__)
++	const char *in_elt = elt;
++	elt = maybe_xstrdup_cyg_conv_path(elt, 0);
++#endif
+ 	unsigned magic = 0, element_magic = 0;
+ 	const char *copyfrom = elt;
+ 	char *match;
+@@ -514,6 +518,10 @@ static void init_pathspec_item(struct pathspec_item *item, unsigned flags,
+ 	    item->prefix         > item->len) {
+ 		BUG("error initializing pathspec_item");
+ 	}
++#if defined(__CYGWIN__)
++	if (in_elt != elt)
++		free((void*)elt);
++#endif
+ }
+ 
+ static int pathspec_item_cmp(const void *a_, const void *b_)
+diff --git a/strbuf.c b/strbuf.c
+index fed676a086..0683ac93c0 100644
+--- a/strbuf.c
++++ b/strbuf.c
+@@ -892,6 +892,10 @@ void strbuf_humanise_rate(struct strbuf *buf, off_t bytes)
+ 
+ void strbuf_add_absolute_path(struct strbuf *sb, const char *path)
+ {
++#if defined(__CYGWIN__)
++	const char *in_path = path;
++	path = maybe_xstrdup_cyg_conv_path(path, 0);
++#endif
+ 	if (!*path)
+ 		die("The empty string is not a valid path");
+ 	if (!is_absolute_path(path)) {
+@@ -913,6 +917,10 @@ void strbuf_add_absolute_path(struct strbuf *sb, const char *path)
+ 		free(cwd);
+ 	}
+ 	strbuf_addstr(sb, path);
++#if defined(__CYGWIN__)
++	if (in_path != path)
++		free((void*)path);
++#endif
+ }
+ 
+ void strbuf_add_real_path(struct strbuf *sb, const char *path)
+ 
