@@ -1,8 +1,8 @@
 # Maintainer: Alexey Pavlov <alexpux@gmail.com>
 # Maintainer: Ray Donnelly <mingw.android@gmail.com>
 
-_pkgname=git
-pkgname=${_pkgname}-for-windows
+_realname=git
+pkgname=${_realname}-for-windows
 pkgver=2.40.0
 pkgrel=1
 pkgver_win=${pkgver}.windows.${pkgrel}
@@ -50,7 +50,7 @@ optdepends=(#'tk: gitk and git gui'
 replaces=('git-core')
 provides=('git-core')
 #options=('debug' '!strip')
-source=("${pkgname}-${pkgver_win}.tar.gz"::https://github.com/git-for-windows/git/archive/v${pkgver_win}.tar.gz
+source=("${_realname}-${pkgver_win}.tar.gz"::https://github.com/git-for-windows/git/archive/v${pkgver_win}.tar.gz
         1.7.9-cygwin.patch
         git-1.8.4-msys2.patch
         git-2.8.2-Cygwin-Allow-DOS-paths.patch
@@ -75,7 +75,7 @@ apply_patch_with_msg() {
 }
 
 prepare() {
-  cd "${srcdir}/${_pkgname}-${pkgver_win}"
+  cd "${srcdir}/${_realname}-${pkgver_win}"
 
   rm -f compat/win32/git.manifest compat/win32/resource.rc
   apply_patch_with_msg \
@@ -95,7 +95,7 @@ prepare() {
 
 build() {
   export PYTHON_PATH='/usr/bin/python'
-  cd "${srcdir}/${_pkgname}-${pkgver_win}"
+  cd "${srcdir}/${_realname}-${pkgver_win}"
 
   local CYGWIN_CHOST="${CHOST/-msys/-cygwin}"
   ./configure \
@@ -116,7 +116,7 @@ build() {
 
 check() {
   export PYTHON_PATH='/usr/bin/python'
-  cd "${srcdir}/${_pkgname}-${pkgver_win}"
+  cd "${srcdir}/${_realname}-${pkgver_win}"
   local jobs
   jobs=$(expr "$MAKEFLAGS" : '.*\(-j[0-9]*\).*')
   mkdir -p /tmp/git-test
@@ -133,7 +133,7 @@ check() {
 
 package() {
   export PYTHON_PATH='/usr/bin/python'
-  cd "${srcdir}/${_pkgname}-${pkgver_win}"
+  cd "${srcdir}/${_realname}-${pkgver_win}"
   make INSTALLDIRS=vendor DESTDIR="$pkgdir" install
   make INSTALLDIRS=vendor DESTDIR="${pkgdir}" install-man
   #make INSTALLDIRS=vendor DESTDIR="${pkgdir}" install-info
@@ -147,6 +147,10 @@ package() {
   # subtree installation
   sed "s|libexec/git-core|lib/git-core|" -i contrib/subtree/Makefile
   make -C contrib/subtree prefix=/usr DESTDIR="${pkgdir}" install
+  # git-credential-wincred installation
+  sed "s|libexec/git-core|lib/git-core|" -i contrib/credential/wincred/Makefile
+  make -C contrib/credential/wincred DESTDIR="${pkgdir}" install
+  make -C contrib/credential/wincred clean
 
   # the rest of the contrib stuff
   cp -a ./contrib/* ${pkgdir}/usr/share/git/
