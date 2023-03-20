@@ -4,7 +4,7 @@
 _realname=git
 pkgname=${_realname}-for-windows
 pkgver=2.40.0
-pkgrel=1
+pkgrel=2
 pkgver_win=${pkgver}.windows.${pkgrel}
 pkgdesc="The fast distributed version control system"
 arch=('i686' 'x86_64')
@@ -49,6 +49,7 @@ optdepends=(#'tk: gitk and git gui'
             )
 replaces=('git-core')
 provides=('git-core')
+conflicts=('git')
 #options=('debug' '!strip')
 source=("${_realname}-${pkgver_win}.tar.gz"::https://github.com/git-for-windows/git/archive/v${pkgver_win}.tar.gz
         1.7.9-cygwin.patch
