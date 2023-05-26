@@ -3,8 +3,8 @@
 
 _realname=git
 pkgname=${_realname}-for-windows
-pkgver=2.40.0
-pkgrel=2
+pkgver=2.40.1
+pkgrel=1
 pkgver_win=${pkgver}.windows.${pkgrel}
 pkgdesc="The fast distributed version control system"
 arch=('i686' 'x86_64')
@@ -58,7 +58,7 @@ source=("${_realname}-${pkgver_win}.tar.gz"::https://github.com/git-for-windows/
         git-tcsh-completion-fixes.patch
         git-2.35.1-git-gui.patch
 		git-credential-wincred-fixes.patch)
-sha256sums=('53e207293bc226ad129ed0ed6ea8d314c01a060dcfff5774f54c4639fde5f427'
+sha256sums=('3a20e1baba75851ef4bd5b3863b91a314f3b4586abee87967d38a7d62bf21504'
             '32baa705d76789d82316a1325e61c9a261114eaa9814dca9c05683bf63069dea'
             '9bc4da5022c5004c4c5b45417b25c6636ddf0ac338574a624c2c775d4394546d'
             '369c52227d10803dd2ace37053cbcbffe63fad23b313bfbe3dce0f3ecd31ca4e'
